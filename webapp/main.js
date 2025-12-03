@@ -70,9 +70,7 @@ detailsForm.addEventListener('submit', event => {
     bic: formData.get('bic'),
     iban: formData.get('iban')?.replace(/\s/g, ''),
     amount: formData.get('amount'),
-    // Payment Reference -> reference 字段
     reference: formData.get('reference') || '',
-    // Remittance Information -> message 字段
     message: formData.get('remittance') || '',
   })
 
