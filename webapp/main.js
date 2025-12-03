@@ -44,7 +44,6 @@ formLoadEl.addEventListener('submit', event => {
     })
     .then(persons => {
       selectPersonWrapper.style.display = 'block'
-      // 默认填第一条
       setFormData(persons[0])
       persons.forEach(person => {
         const optionEl = document.createElement('option')
@@ -71,9 +70,9 @@ detailsForm.addEventListener('submit', event => {
     bic: formData.get('bic'),
     iban: formData.get('iban')?.replace(/\s/g, ''),
     amount: formData.get('amount'),
-    // Payment Reference -> 对应 EPC 的 reference 字段
+    // Payment Reference -> reference 字段
     reference: formData.get('reference') || '',
-    // Remittance Information -> 对应 EPC 的 message / remittance 信息
+    // Remittance Information -> message 字段
     message: formData.get('remittance') || '',
   })
 
