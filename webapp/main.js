@@ -1,7 +1,6 @@
 import QRCode from 'qrcode'
 import { getQrCodeText } from '../common.js'
 
-
 const detailsForm = document.getElementById('transfer-details')
 
 function setFormData(person) {
@@ -14,77 +13,78 @@ function setFormData(person) {
 
 const selectElement = document.getElementById('select-person')
 
-selectElement
-  .addEventListener('change', event => {
-    const optionEl = event.target.options[event.target.selectedIndex]
-    setFormData({ name: optionEl.dataset.name, iban: optionEl.dataset.iban })
+selectElement.addEventListener('change', event => {
+  const optionEl = event.target.options[event.target.selectedIndex]
+  setFormData({
+    name: optionEl.dataset.name,
+    iban: optionEl.dataset.iban,
+    bic: optionEl.dataset.bic
   })
-
+})
 
 const formLoadEl = document.getElementById('load-data')
 const selectPersonWrapper = document.getElementById('select-person-wrapper')
 
+formLoadEl.addEventListener('submit', event => {
+  event.preventDefault()
+  event.stopPropagation()
 
-formLoadEl
-  .addEventListener('submit', event => {
-    event.preventDefault()
-    event.stopPropagation()
-
-    fetch('/api/persons', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        password: formLoadEl?.password?.value,
-      }),
+  fetch('/api/persons', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      password: formLoadEl?.password?.value,
+    }),
+  })
+    .then(data => {
+      if (data.status !== 200) {
+        throw new Error(data.statusText)
+      }
+      return data.json()
     })
-      .then(data => {
-        if (data.status !== 200) {
-          throw new Error(data.statusText)
-        }
-        return data.json()
+    .then(persons => {
+      selectPersonWrapper.style.display = 'block'
+      // 默认填第一条
+      setFormData(persons[0])
+      persons.forEach(person => {
+        const optionEl = document.createElement('option')
+        optionEl.dataset.name = person.name
+        optionEl.dataset.iban = person.iban
+        optionEl.dataset.bic = person.bic
+        optionEl.text = person.name
+        selectElement.appendChild(optionEl)
       })
-      .then(persons => {
-        selectPersonWrapper.style.display = 'block'
-        setFormData(persons[0])
-        persons.forEach(person => {
-          const optionEl = document.createElement('option')
-          optionEl.dataset.name = person.name
-          optionEl.dataset.iban = person.iban
-          optionEl.text = person.name
-          selectElement.appendChild(optionEl)
-        })
-      })
-      .catch(error => {
-        window.alert(error)
-      })
+    })
+    .catch(error => {
+      window.alert(error)
+    })
+})
+
+detailsForm.addEventListener('submit', event => {
+  event.preventDefault()
+  event.stopPropagation()
+
+  const formData = new FormData(event.currentTarget)
+
+  const qrCodeText = getQrCodeText({
+    name: formData.get('name'),
+    bic: formData.get('bic'),
+    iban: formData.get('iban')?.replace(/\s/g, ''),
+    amount: formData.get('amount'),
+    // Payment Reference -> 对应 EPC 的 reference 字段
+    reference: formData.get('reference') || '',
+    // Remittance Information -> 对应 EPC 的 message / remittance 信息
+    message: formData.get('remittance') || '',
   })
 
+  const canvas = document.getElementById('canvas')
 
-
-detailsForm
-  .addEventListener('submit', event => {
-    event.preventDefault()
-    event.stopPropagation()
-
-    const formData = new FormData(event.srcElement)
-
-    const qrCodeText = getQrCodeText({
-      name: formData.get('name') ||
-        formData.get('firstname') + ' ' + formData.get('lastname'),
-      bic: formData.get('bic'),
-      iban: formData.get('iban').replace(/\s/g, ''),
-      amount: formData.get('amount'),
-      message: formData.get('message'),
-    })
-
-    const canvas = document.getElementById('canvas')
-
-    QRCode.toCanvas(
-      canvas,
-      qrCodeText,
-      (error) => {
-        if (error) console.error(error)
-        else console.info('Success')
-      },
-    )
-  })
+  QRCode.toCanvas(
+    canvas,
+    qrCodeText,
+    (error) => {
+      if (error) console.error(error)
+      else console.info('Success')
+    },
+  )
+})
